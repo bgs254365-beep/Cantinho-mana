@@ -1,6 +1,4 @@
-﻿require("dotenv").config();
-
-const express = require("express");
+﻿const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
@@ -9,6 +7,15 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
 const app = express();
+
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
+
+app.use(express.json({
+    limit: "10mb"
+}));
 
 /* =====================================================
    CONFIGURAÃ‡Ã•ES
@@ -50,17 +57,20 @@ app.use(
 ===================================================== */
 
 const db = mysql.createPool({
-    host: process.env.DB_HOST || "localhost",
-    port: Number(process.env.DB_PORT || 3306),
-    user: process.env.DB_USER || "root",
-    password: process.env.DB_PASSWORD || "",
-    database: process.env.DB_NAME || "cantinho_mana",
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT || 4000),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+
+    ssl: {
+        minVersion: "TLSv1.2"
+    },
 
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 });
-
 /* =====================================================
    TESTAR BANCO
 ===================================================== */
@@ -521,7 +531,7 @@ async function garantirTabelaRecuperacao() {
 
 app.post("/client/forgot-password", async(req, res) => {
     try {
-        const email = String(req.body ?.email || "").trim().toLowerCase();
+        const email = String(req.body ? .email || "").trim().toLowerCase();
         if (!email) return res.status(400).json({ erro: "Informe seu e-mail." });
         if (!resetTransporter) return res.status(503).json({ erro: "A recuperaÃ§Ã£o de senha ainda nÃ£o estÃ¡ configurada no servidor." });
         const [usuarios] = await db.query(`SELECT id, nome, email FROM usuarios WHERE email = ? AND tipo = 'cliente' LIMIT 1`, [email]);
@@ -550,8 +560,8 @@ app.post("/client/forgot-password", async(req, res) => {
 app.post("/client/reset-password", async(req, res) => {
     let conexao = null;
     try {
-        const token = String(req.body ?.token || "").trim();
-        const novaSenha = String(req.body ?.senha || req.body ?.password || "");
+        const token = String(req.body ? .token || "").trim();
+        const novaSenha = String(req.body ? .senha || req.body ? .password || "");
         if (!token || !novaSenha) return res.status(400).json({ erro: "Token e nova senha sÃ£o obrigatÃ³rios." });
         if (novaSenha.length < 6) return res.status(400).json({ erro: "A nova senha deve ter pelo menos 6 caracteres." });
         const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
