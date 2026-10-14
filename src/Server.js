@@ -1,4 +1,6 @@
-﻿const express = require("express");
+require("dotenv").config();
+
+const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
@@ -8,17 +10,8 @@ const nodemailer = require("nodemailer");
 
 const app = express();
 
-app.use(cors({
-    origin: true,
-    credentials: true
-}));
-
-app.use(express.json({
-    limit: "10mb"
-}));
-
 /* =====================================================
-   CONFIGURAÃ‡Ã•ES
+   CONFIGURAÇÕES
 ===================================================== */
 
 const PORT = Number(process.env.PORT || 3001);
@@ -53,24 +46,24 @@ app.use(
 );
 
 /* =====================================================
-   CONEXÃƒO COM MYSQL
+   CONEXÃO COM MYSQL
 ===================================================== */
 
 const db = mysql.createPool({
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT || 4000),
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-
-    ssl: {
-        minVersion: "TLSv1.2"
-    },
+    host: process.env.DB_HOST || "localhost",
+    port: Number(process.env.DB_PORT || 3306),
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_NAME || "cantinho_mana",
+    ssl: process.env.DB_SSL === "true"
+        ? { minVersion: "TLSv1.2" }
+        : undefined,
 
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 });
+
 /* =====================================================
    TESTAR BANCO
 ===================================================== */
@@ -84,15 +77,46 @@ async function testarBanco() {
         conexao.release();
 
         console.log(
-            "âœ… MySQL conectado com sucesso!"
+            "✅ MySQL conectado com sucesso!"
         );
     } catch (erro) {
         console.error(
-            "âŒ Erro ao conectar ao MySQL:"
+            "❌ Erro ao conectar ao MySQL:"
         );
 
         console.error(erro.message);
     }
+}
+
+/* =====================================================
+   PEDIDOS POR MESA - TABELAS
+===================================================== */
+
+async function garantirTabelasPedidosMesa() {
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS pedidos_mesa (
+            id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            mesa VARCHAR(30) NOT NULL,
+            total DECIMAL(10,2) NOT NULL DEFAULT 0,
+            status VARCHAR(20) NOT NULL DEFAULT 'recebido',
+            criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_pedidos_mesa_status (status),
+            INDEX idx_pedidos_mesa_criado (criado_em)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS itens_pedido_mesa (
+            id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            pedido_id BIGINT NOT NULL,
+            produto_id BIGINT NULL,
+            nome_produto VARCHAR(255) NOT NULL,
+            quantidade INT NOT NULL,
+            preco DECIMAL(10,2) NOT NULL DEFAULT 0,
+            criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_itens_pedido_mesa_pedido (pedido_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
 }
 
 /* =====================================================
@@ -126,7 +150,7 @@ function obterToken(req) {
 }
 
 /* =====================================================
-   AUTENTICAÃ‡ÃƒO DO CLIENTE
+   AUTENTICAÇÃO DO CLIENTE
 ===================================================== */
 
 function autenticarCliente(
@@ -138,7 +162,7 @@ function autenticarCliente(
 
     if (!token) {
         return res.status(401).json({
-            erro: "NÃ£o autenticado."
+            erro: "Não autenticado."
         });
     }
 
@@ -154,13 +178,13 @@ function autenticarCliente(
         next();
     } catch (erro) {
         return res.status(401).json({
-            erro: "Token invÃ¡lido ou expirado."
+            erro: "Token inválido ou expirado."
         });
     }
 }
 
 /* =====================================================
-   AUTENTICAÃ‡ÃƒO DO ADMIN
+   AUTENTICAÇÃO DO ADMIN
 ===================================================== */
 
 function autenticarAdmin(
@@ -172,7 +196,7 @@ function autenticarAdmin(
 
     if (!token) {
         return res.status(401).json({
-            erro: "NÃ£o autenticado."
+            erro: "Não autenticado."
         });
     }
 
@@ -196,7 +220,7 @@ function autenticarAdmin(
         next();
     } catch (erro) {
         return res.status(401).json({
-            erro: "Token invÃ¡lido ou expirado."
+            erro: "Token inválido ou expirado."
         });
     }
 }
@@ -207,7 +231,7 @@ function autenticarAdmin(
 
 app.get("/", (req, res) => {
     res.json({
-        mensagem: "API do Cantinho do ManÃ¡ funcionando!",
+        mensagem: "API do Cantinho do Maná funcionando!",
         status: "online"
     });
 });
@@ -269,7 +293,7 @@ app.post(
                 !senhaFinal
             ) {
                 return res.status(400).json({
-                    erro: "Nome, email e senha sÃ£o obrigatÃ³rios."
+                    erro: "Nome, email e senha são obrigatórios."
                 });
             }
 
@@ -311,7 +335,7 @@ app.post(
                 existentes.length > 0
             ) {
                 return res.status(409).json({
-                    erro: "Este email jÃ¡ estÃ¡ cadastrado."
+                    erro: "Este email já está cadastrado."
                 });
             }
 
@@ -420,7 +444,7 @@ app.post(
                 !senhaFinal
             ) {
                 return res.status(400).json({
-                    erro: "Email e senha sÃ£o obrigatÃ³rios."
+                    erro: "Email e senha são obrigatórios."
                 });
             }
 
@@ -449,7 +473,7 @@ app.post(
                 usuarios.length === 0
             ) {
                 return res.status(401).json({
-                    erro: "Email ou senha invÃ¡lidos."
+                    erro: "Email ou senha inválidos."
                 });
             }
 
@@ -458,7 +482,7 @@ app.post(
 
             if (!usuario.senha_hash) {
                 return res.status(401).json({
-                    erro: "Esta conta nÃ£o possui senha local."
+                    erro: "Esta conta não possui senha local."
                 });
             }
 
@@ -470,7 +494,7 @@ app.post(
 
             if (!senhaCorreta) {
                 return res.status(401).json({
-                    erro: "Email ou senha invÃ¡lidos."
+                    erro: "Email ou senha inválidos."
                 });
             }
 
@@ -506,7 +530,7 @@ app.post(
 );
 
 /* =====================================================
-   CLIENTE - RECUPERAÃ‡ÃƒO DE SENHA
+   CLIENTE - RECUPERAÇÃO DE SENHA
 ===================================================== */
 
 async function garantirTabelaRecuperacao() {
@@ -531,11 +555,11 @@ async function garantirTabelaRecuperacao() {
 
 app.post("/client/forgot-password", async(req, res) => {
     try {
-        const email = String(req.body ? .email || "").trim().toLowerCase();
+        const email = String(req.body ?.email || "").trim().toLowerCase();
         if (!email) return res.status(400).json({ erro: "Informe seu e-mail." });
-        if (!resetTransporter) return res.status(503).json({ erro: "A recuperaÃ§Ã£o de senha ainda nÃ£o estÃ¡ configurada no servidor." });
+        if (!resetTransporter) return res.status(503).json({ erro: "A recuperação de senha ainda não está configurada no servidor." });
         const [usuarios] = await db.query(`SELECT id, nome, email FROM usuarios WHERE email = ? AND tipo = 'cliente' LIMIT 1`, [email]);
-        if (usuarios.length === 0) return res.json({ mensagem: "Se o e-mail estiver cadastrado, vocÃª receberÃ¡ as instruÃ§Ãµes de recuperaÃ§Ã£o." });
+        if (usuarios.length === 0) return res.json({ mensagem: "Se o e-mail estiver cadastrado, você receberá as instruções de recuperação." });
         const usuario = usuarios[0];
         const token = crypto.randomBytes(32).toString("hex");
         const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
@@ -546,38 +570,38 @@ app.post("/client/forgot-password", async(req, res) => {
         await resetTransporter.sendMail({
             from: SMTP_FROM,
             to: usuario.email,
-            subject: "RecuperaÃ§Ã£o de senha - Cantinho do ManÃ¡",
-            text: `OlÃ¡, ${usuario.nome}.\n\nUse este link para redefinir sua senha:\n${link}\n\nO link expira em 30 minutos.`,
-            html: `<p>OlÃ¡, ${String(usuario.nome).replace(/[<>&"]/g, "") }.</p><p>Clique no botÃ£o para redefinir sua senha:</p><p><a href="${link}">Redefinir minha senha</a></p><p>O link expira em 30 minutos.</p>`
+            subject: "Recuperação de senha - Cantinho do Maná",
+            text: `Olá, ${usuario.nome}.\n\nUse este link para redefinir sua senha:\n${link}\n\nO link expira em 30 minutos.`,
+            html: `<p>Olá, ${String(usuario.nome).replace(/[<>&"]/g, "") }.</p><p>Clique no botão para redefinir sua senha:</p><p><a href="${link}">Redefinir minha senha</a></p><p>O link expira em 30 minutos.</p>`
         });
-        return res.json({ mensagem: "Se o e-mail estiver cadastrado, vocÃª receberÃ¡ as instruÃ§Ãµes de recuperaÃ§Ã£o." });
+        return res.json({ mensagem: "Se o e-mail estiver cadastrado, você receberá as instruções de recuperação." });
     } catch (erro) {
-        console.error("Erro na recuperaÃ§Ã£o de senha:", erro.message);
-        return res.status(500).json({ erro: "NÃ£o foi possÃ­vel iniciar a recuperaÃ§Ã£o de senha." });
+        console.error("Erro na recuperação de senha:", erro.message);
+        return res.status(500).json({ erro: "Não foi possível iniciar a recuperação de senha." });
     }
 });
 
 app.post("/client/reset-password", async(req, res) => {
     let conexao = null;
     try {
-        const token = String(req.body ? .token || "").trim();
-        const novaSenha = String(req.body ? .senha || req.body ? .password || "");
-        if (!token || !novaSenha) return res.status(400).json({ erro: "Token e nova senha sÃ£o obrigatÃ³rios." });
+        const token = String(req.body ?.token || "").trim();
+        const novaSenha = String(req.body ?.senha || req.body ?.password || "");
+        if (!token || !novaSenha) return res.status(400).json({ erro: "Token e nova senha são obrigatórios." });
         if (novaSenha.length < 6) return res.status(400).json({ erro: "A nova senha deve ter pelo menos 6 caracteres." });
         const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
         const [tokens] = await db.query(`SELECT id, usuario_id FROM tokens_recuperacao WHERE token_hash = ? AND usado = 0 AND expira_em > NOW() LIMIT 1`, [tokenHash]);
-        if (tokens.length === 0) return res.status(400).json({ erro: "Link de recuperaÃ§Ã£o invÃ¡lido ou expirado." });
+        if (tokens.length === 0) return res.status(400).json({ erro: "Link de recuperação inválido ou expirado." });
         const senhaHash = await bcrypt.hash(novaSenha, 10);
         conexao = await db.getConnection();
         await conexao.beginTransaction();
         await conexao.query(`UPDATE usuarios SET senha_hash = ? WHERE id = ? AND tipo = 'cliente'`, [senhaHash, tokens[0].usuario_id]);
         await conexao.query(`UPDATE tokens_recuperacao SET usado = 1 WHERE id = ?`, [tokens[0].id]);
         await conexao.commit();
-        return res.json({ mensagem: "Senha redefinida com sucesso! FaÃ§a login novamente." });
+        return res.json({ mensagem: "Senha redefinida com sucesso! Faça login novamente." });
     } catch (erro) {
         if (conexao) { try { await conexao.rollback(); } catch {} }
         console.error("Erro ao redefinir senha:", erro.message);
-        return res.status(500).json({ erro: "NÃ£o foi possÃ­vel redefinir a senha." });
+        return res.status(500).json({ erro: "Não foi possível redefinir a senha." });
     } finally { if (conexao) conexao.release(); }
 });
 
@@ -608,7 +632,7 @@ app.get(
                 usuarios.length === 0
             ) {
                 return res.status(404).json({
-                    erro: "Cliente nÃ£o encontrado."
+                    erro: "Cliente não encontrado."
                 });
             }
 
@@ -720,7 +744,7 @@ async function criarProduto(
             Number.isNaN(Number(preco))
         ) {
             return res.status(400).json({
-                erro: "Nome e preÃ§o sÃ£o obrigatÃ³rios."
+                erro: "Nome e preço são obrigatórios."
             });
         }
 
@@ -844,7 +868,7 @@ async function editarProduto(
             Number.isNaN(Number(preco))
         ) {
             return res.status(400).json({
-                erro: "Nome e preÃ§o sÃ£o obrigatÃ³rios."
+                erro: "Nome e preço são obrigatórios."
             });
         }
 
@@ -916,7 +940,7 @@ async function editarProduto(
             produtos.length === 0
         ) {
             return res.status(404).json({
-                erro: "Produto nÃ£o encontrado."
+                erro: "Produto não encontrado."
             });
         }
 
@@ -1070,7 +1094,7 @@ async function criarCategoria(
             !String(nome).trim()
         ) {
             return res.status(400).json({
-                erro: "Nome da categoria Ã© obrigatÃ³rio."
+                erro: "Nome da categoria é obrigatório."
             });
         }
 
@@ -1099,7 +1123,7 @@ async function criarCategoria(
             "ER_DUP_ENTRY"
         ) {
             return res.status(409).json({
-                erro: "Essa categoria jÃ¡ existe."
+                erro: "Essa categoria já existe."
             });
         }
 
@@ -1152,7 +1176,7 @@ async function excluirCategoria(
             produtos.length > 0
         ) {
             return res.status(400).json({
-                erro: "Essa categoria possui produtos. Altere os produtos antes de removÃª-la."
+                erro: "Essa categoria possui produtos. Altere os produtos antes de removê-la."
             });
         }
 
@@ -1268,7 +1292,7 @@ async function criarAviso(
             !String(texto).trim()
         ) {
             return res.status(400).json({
-                erro: "O texto do aviso Ã© obrigatÃ³rio."
+                erro: "O texto do aviso é obrigatório."
             });
         }
 
@@ -1426,7 +1450,7 @@ app.post(
 
                 if (!produtoId) {
                     throw new Error(
-                        "Produto invÃ¡lido no pedido."
+                        "Produto inválido no pedido."
                     );
                 }
 
@@ -1480,7 +1504,7 @@ app.post(
 );
 
 /* =====================================================
-   PEDIDOS - HISTÃ“RICO
+   PEDIDOS - HISTÓRICO
 ===================================================== */
 
 app.get(
@@ -1557,8 +1581,8 @@ app.get(
 
         } catch (erro) {
             console.error("=================================");
-            console.error("âŒ ERRO AO SALVAR PEDIDO");
-            console.error("CÃ³digo:", erro.code);
+            console.error("❌ ERRO AO SALVAR PEDIDO");
+            console.error("Código:", erro.code);
             console.error("Mensagem:", erro.message);
             console.error("SQL:", erro.sqlMessage);
             console.error("=================================");
@@ -1593,7 +1617,7 @@ app.delete(
             );
 
             res.json({
-                mensagem: "Pedido excluÃ­do com sucesso."
+                mensagem: "Pedido excluído com sucesso."
             });
 
         } catch (erro) {
@@ -1628,7 +1652,7 @@ app.post(
 
             if (!senhaFinal) {
                 return res.status(400).json({
-                    erro: "CÃ³digo de acesso Ã© obrigatÃ³rio."
+                    erro: "Código de acesso é obrigatório."
                 });
             }
 
@@ -1682,7 +1706,7 @@ app.post(
                 usuarios.length === 0
             ) {
                 return res.status(401).json({
-                    erro: "Administrador nÃ£o encontrado."
+                    erro: "Administrador não encontrado."
                 });
             }
 
@@ -1691,7 +1715,7 @@ app.post(
 
             if (!usuario.senha_hash) {
                 return res.status(401).json({
-                    erro: "Administrador nÃ£o possui senha."
+                    erro: "Administrador não possui senha."
                 });
             }
 
@@ -1703,7 +1727,7 @@ app.post(
 
             if (!senhaCorreta) {
                 return res.status(401).json({
-                    erro: "CÃ³digo de acesso invÃ¡lido."
+                    erro: "Código de acesso inválido."
                 });
             }
 
@@ -1737,13 +1761,183 @@ app.post(
 );
 
 /* =====================================================
+   PEDIDOS PELO QR CODE DA MESA (SEM LOGIN DE CLIENTE)
+===================================================== */
+
+app.post("/pedidos/mesa", async (req, res) => {
+    let conexao = null;
+
+    try {
+        const mesa = String(req.body?.mesa || "").trim();
+        const itensRecebidos = req.body?.itens;
+
+        if (!mesa || mesa.length > 30 || !/^[A-Za-z0-9_-]{1,30}$/.test(mesa)) {
+            return res.status(400).json({ erro: "Mesa inválida. Abra o cardápio pelo QR code da mesa." });
+        }
+
+        if (!Array.isArray(itensRecebidos) || itensRecebidos.length === 0 || itensRecebidos.length > 50) {
+            return res.status(400).json({ erro: "O pedido precisa ter entre 1 e 50 itens." });
+        }
+
+        const itensNormalizados = itensRecebidos.map((item) => ({
+            produtoId: Number(item.produtoId || item.id),
+            quantidade: Number(item.quantidade),
+        }));
+
+        if (itensNormalizados.some((item) =>
+            !Number.isSafeInteger(item.produtoId) || item.produtoId < 1 ||
+            !Number.isSafeInteger(item.quantidade) || item.quantidade < 1 || item.quantidade > 99
+        )) {
+            return res.status(400).json({ erro: "Há produtos ou quantidades inválidos no pedido." });
+        }
+
+        const ids = [...new Set(itensNormalizados.map((item) => item.produtoId))];
+        const placeholders = ids.map(() => "?").join(",");
+        const [produtos] = await db.query(
+            `SELECT id, nome, preco FROM produtos WHERE id IN (${placeholders})`,
+            ids
+        );
+        const produtosPorId = new Map(produtos.map((produto) => [String(produto.id), produto]));
+
+        if (ids.some((id) => !produtosPorId.has(String(id)))) {
+            return res.status(400).json({ erro: "Um ou mais produtos não existem mais no cardápio." });
+        }
+
+        // O preço é calculado no servidor a partir do banco, nunca confiamos no preço enviado pelo navegador.
+        let total = 0;
+        const itensValidados = itensNormalizados.map((item) => {
+            const produto = produtosPorId.get(String(item.produtoId));
+            const preco = Number(produto.preco);
+            total += preco * item.quantidade;
+            return {
+                produtoId: Number(produto.id),
+                nome: String(produto.nome),
+                quantidade: item.quantidade,
+                preco,
+            };
+        });
+        total = Math.round((total + Number.EPSILON) * 100) / 100;
+
+        conexao = await db.getConnection();
+        await conexao.beginTransaction();
+
+        const [pedido] = await conexao.query(
+            `INSERT INTO pedidos_mesa (mesa, total, status) VALUES (?, ?, 'recebido')`,
+            [mesa, total]
+        );
+
+        for (const item of itensValidados) {
+            await conexao.query(
+                `INSERT INTO itens_pedido_mesa (pedido_id, produto_id, nome_produto, quantidade, preco) VALUES (?, ?, ?, ?, ?)`,
+                [pedido.insertId, item.produtoId, item.nome, item.quantidade, item.preco]
+            );
+        }
+
+        await conexao.commit();
+        return res.status(201).json({
+            mensagem: "Pedido enviado à equipe com sucesso.",
+            pedidoId: String(pedido.insertId),
+            mesa,
+            total,
+            status: "recebido",
+        });
+    } catch (erro) {
+        if (conexao) {
+            try { await conexao.rollback(); } catch {}
+        }
+        console.error("Erro ao criar pedido de mesa:", erro.message);
+        return res.status(500).json({ erro: "Não foi possível enviar o pedido da mesa. Tente novamente." });
+    } finally {
+        if (conexao) conexao.release();
+    }
+});
+
+/* =====================================================
+   ADMIN - CONSULTAR PEDIDOS DAS MESAS
+===================================================== */
+
+app.get("/admin/pedidos-mesa", autenticarAdmin, async (req, res) => {
+    try {
+        const [pedidos] = await db.query(`
+            SELECT id, mesa, total, status, criado_em
+            FROM pedidos_mesa
+            ORDER BY CASE status
+                WHEN 'recebido' THEN 1
+                WHEN 'preparando' THEN 2
+                WHEN 'pronto' THEN 3
+                ELSE 4
+            END, criado_em DESC
+            LIMIT 100
+        `);
+
+        const resultado = [];
+        for (const pedido of pedidos) {
+            const [itens] = await db.query(`
+                SELECT produto_id, nome_produto AS nome, quantidade, preco
+                FROM itens_pedido_mesa
+                WHERE pedido_id = ?
+                ORDER BY id ASC
+            `, [pedido.id]);
+
+            resultado.push({
+                id: String(pedido.id),
+                mesa: pedido.mesa,
+                total: Number(pedido.total),
+                status: pedido.status,
+                criado_em: pedido.criado_em,
+                itens: itens.map((item) => ({
+                    produtoId: item.produto_id,
+                    nome: item.nome,
+                    quantidade: Number(item.quantidade),
+                    preco: Number(item.preco),
+                })),
+            });
+        }
+        return res.json(resultado);
+    } catch (erro) {
+        console.error("Erro ao consultar pedidos de mesa:", erro.message);
+        return res.status(500).json({ erro: "Não foi possível carregar os pedidos das mesas." });
+    }
+});
+
+/* =====================================================
+   ADMIN - ATUALIZAR STATUS DE PEDIDO DE MESA
+===================================================== */
+
+app.put("/admin/pedidos-mesa/:id/status", autenticarAdmin, async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        const status = String(req.body?.status || "").trim();
+        const statusPermitidos = ["recebido", "preparando", "pronto", "entregue", "cancelado"];
+
+        if (!Number.isSafeInteger(id) || id < 1 || !statusPermitidos.includes(status)) {
+            return res.status(400).json({ erro: "ID ou status inválido." });
+        }
+
+        const [resultado] = await db.query(
+            "UPDATE pedidos_mesa SET status = ? WHERE id = ?",
+            [status, id]
+        );
+
+        if (!resultado.affectedRows) {
+            return res.status(404).json({ erro: "Pedido não encontrado." });
+        }
+
+        return res.json({ mensagem: "Status atualizado.", id: String(id), status });
+    } catch (erro) {
+        console.error("Erro ao atualizar status do pedido de mesa:", erro.message);
+        return res.status(500).json({ erro: "Não foi possível atualizar o status do pedido." });
+    }
+});
+
+/* =====================================================
    ERRO 404
 ===================================================== */
 
 app.use(
     (req, res) => {
         res.status(404).json({
-            erro: "Rota nÃ£o encontrada.",
+            erro: "Rota não encontrada.",
             rota: req.method +
                 " " +
                 req.originalUrl
@@ -1759,13 +1953,22 @@ app.listen(
     PORT,
     async() => {
         console.log(
-            `ðŸš€ API rodando em http://localhost:${PORT}`
+            `🚀 API rodando em http://localhost:${PORT}`
         );
 
         await testarBanco();
         try {
             await garantirTabelaRecuperacao();
-            console.log("âœ… Tabela de recuperaÃ§Ã£o de senha pronta!");
-        } catch (erro) { console.error("âŒ Erro ao preparar recuperaÃ§Ã£o de senha:", erro.message); }
+            console.log("✅ Tabela de recuperação de senha pronta!");
+        } catch (erro) {
+            console.error("❌ Erro ao preparar recuperação de senha:", erro.message);
+        }
+
+        try {
+            await garantirTabelasPedidosMesa();
+            console.log("✅ Tabelas de pedidos por mesa prontas!");
+        } catch (erro) {
+            console.error("❌ Erro ao preparar tabelas de pedidos por mesa:", erro.message);
+        }
     }
 );
