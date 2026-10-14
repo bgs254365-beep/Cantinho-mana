@@ -1,9 +1,235 @@
+
+Carregando mensagens mais antigas…
+Anexo do usuário
+Perfeito. O sitemap foi gerado, mas não precisa pagar pelo PRO.
+
+Como o seu site é basicamente uma página React, podemos usar um sitemap simples e controlado por você.
+
+Faça assim
+Na tela que está aberta, clique em View sitemap details e procure a opção para baixar o sitemap.xml.
+
+Depois coloque esse arquivo no seu projeto:
+
+Menu
+└── public
+    ├── index.html
+    └── sitemap.xml
+O conteúdo precisa apontar para:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://cantinho-mana.vercel.app/</loc>
+  </url>
+</urlset>
+Depois faça commit no GitHub e aguarde a Vercel publicar.
+
+Depois, no Search Console
+Vá em:
+
+Indexação
+→ Sitemaps
+Em Adicionar um novo sitemap, coloque:
+
+sitemap.xml
+e clique em Enviar.
+
+Depois disso, o Search Console deverá mostrar o sitemap processado. O Google recomenda sitemaps como forma de ajudar na descoberta de URLs.
+
+Não compre o PRO desse site de sitemap. Para o seu projeto, não é necessário.
+
+Anexo do usuário
+Perfeito. ✅ Esse sitemap.xml está correto.
+
+Ele está apontando para:
+
+https://cantinho-mana.vercel.app/
+e já está no lugar certo:
+
+public/sitemap.xml
+Agora só falta fazer o Google receber esse sitemap.
+
+No Google Search Console:
+
+Indexação
+→ Sitemaps
+No campo para adicionar sitemap, coloque somente:
+
+sitemap.xml
+e clique em Enviar.
+
+Depois deve aparecer o sitemap na lista, com o status de processamento.
+
+Como seu index.html já está com o nome Cantinho do Maná e a descrição configurada, agora temos a estrutura básica para o Google entender e descobrir o site.
+
+Depois de enviar o sitemap, não precisa ficar solicitando indexação repetidamente. Deixe o Google rastrear e processar.
+
+Anexo do usuário
+como corrrigir essee haburgueres:
+Isso aconteceu porque o texto “Hambúrgueres” ficou corrompido na base de dados durante a importação. Pelo print, o problema está no valor da categoria, não no botão.
+
+Como agora seu banco está no TiDB, a forma mais rápida é corrigir direto nele.
+
+1. Entre no banco cantinho_mana
+No MySQL:
+
+USE cantinho_mana;
+2. Corrija a categoria
+Execute:
+
+UPDATE categorias
+SET nome = 'Hambúrgueres'
+WHERE nome LIKE 'Hamb%gueres';
+Depois corrija também os produtos que usam essa categoria:
+
+UPDATE produtos
+SET categoria = 'Hambúrgueres'
+WHERE categoria LIKE 'Hamb%gueres';
+3. Confira
+SELECT *
+FROM categorias;
+e:
+
+SELECT nome, categoria
+FROM produtos
+WHERE categoria = 'Hambúrgueres';
+Depois atualize o site com Ctrl + F5.
+
+Se ainda aparecer errado
+Pode ser que o texto corrompido esteja salvo com outra sequência de caracteres. Nesse caso, me mande um print do resultado de:
+
+SELECT id, nome
+FROM categorias;
+e eu te passo o comando exato para corrigir.
+
+Não precisa mexer no Telas.jsx nem fazer outro deploy para essa correção, desde que a categoria esteja vindo do banco.
+
+Anexo do usuário
+n esta aparecendo a parte de indexação: e no banco, tem isso:
+Sim — no Google Search Console, está tudo normal. O painel mostra:
+
+“Processando dados, por favor, verifique novamente em um ou dois dias.”
+
+Isso não significa que a indexação falhou. A URL já passou no teste ao vivo e foi considerada disponível para o Google. Agora os relatórios de indexação e desempenho ainda estão sendo preenchidos.
+
+Então, não precisa mexer mais no Search Console agora. Deixe o sitemap enviado e aguarde.
+
+Sobre o banco, eu consigo corrigir o problema do “Hambúrgueres”, mas preciso ver exatamente o que apareceu na consulta do banco. O print que chegou aqui mostra somente o Search Console. Envie um print da tela do MySQL/TiDB onde aparecem as categorias ou o resultado desta consulta:
+
+SELECT id, nome FROM categorias;
+
+Aí eu te passo o comando exato para corrigir o texto sem mexer nas outras categorias.
+
+quero que quando o cliente peça um lanche na lanchonete lçendo o qrcode ele gere o pedido  informando em que mesa o cliente está
+
+Pensou por 11m 41s
+Vamos transformar o Cantinho do Maná em um sistema de pedidos por QR Code, em que cada mesa tem seu próprio código, o pedido é salvo no banco e a cozinha consegue ver de qual mesa ele veio — sem exigir login do cliente.
+
+Preparei os arquivos para você copiar e colar, seguindo a estrutura atual do seu projeto, com frontend na Vercel, API no Render e banco no TiDB.
+
+1. Baixe os arquivos preparados
+Frontend — Telas.jsx
+
+Cardápio, identificação da mesa, carrinho e envio do pedido.
+
+Abrir arquivo de texto para copiar
+
+Backend — server.js
+
+Recebe os pedidos, valida os produtos e grava a mesa e os itens no TiDB.
+
+Abrir arquivo de texto para copiar
+
+QR Codes para as mesas 01 a 10
+
+Dez códigos prontos para imprimir e colocar nas mesas.
+
+Baixar os QR Codes em ZIP
+
+SQL de criação das tabelas
+
+Alternativa manual caso a API não consiga criar as tabelas automaticamente.
+
+Abrir arquivo SQL
+
+Instruções completas
+
+Ordem de instalação, variáveis e teste do sistema.
+
+Abrir o guia
+
+2. Como o pedido vai funcionar
+Plaque De Table Tableau Numéro QR Code Scan to Order Restaurant Ta | Zazzle.fr
+
+1. Cliente escaneia o QR Code
+
+Por exemplo, o QR da mesa 03 abre o cardápio já identificado como Mesa 03.
+
+2. Escolhe os lanches e envia
+
+O cliente adiciona produtos ao carrinho e toca em “Enviar pedido — Mesa 03”.
+
+3. O pedido é gravado no TiDB
+
+A API confere os produtos e preços e salva o pedido com número, mesa, itens, total e status inicial “Recebido”.
+
+4. A equipe acompanha no painel administrativo
+
+Os pedidos de mesa aparecem em uma nova seção, que atualiza automaticamente a cada 15 segundos. A equipe pode marcar “Em preparo”, “Pronto” e “Entregue”.
+
+3. Como instalar sem perder o que já funciona
+Primeiro, faça uma cópia dos seus arquivos atuais.
+
+No GitHub, substitua os dois arquivos:
+
+Arquivo do seu projeto
+
+Conteúdo novo
+
+src/Componentes/Telas.jsx
+
+Telas_QR_Mesas.txt
+
+api/server.js
+
+server_qr_mesas.txt
+
+Em cada arquivo de texto, use Ctrl+A e Ctrl+C. Depois, no arquivo correspondente do projeto, use Ctrl+A, Ctrl+V e salve.
+
+Antes do deploy, confirme no Render → serviço da API → Environment que as variáveis do TiDB estão corretas:
+
+DB_HOST=gateway01.us-east-1.prod.aws.tidbcloud.com
+DB_PORT=4000
+DB_USER=SEU_USUARIO_TIDB
+DB_PASSWORD=SUA_NOVA_SENHA_TIDB
+DB_NAME=cantinho_mana
+DB_SSL=true
+Use a senha atualizada que você definiu no TiDB; não a coloque no frontend nem no GitHub. Preserve também as outras variáveis já existentes no serviço, como JWT_SECRET.
+
+O novo server.js tenta criar as tabelas pedidos_mesa e itens_pedido_mesa ao iniciar. Depois de fazer commit e push para o GitHub, aguarde a API no Render e o site na Vercel terminarem seus deploys.
+
+Importante: os pedidos de mesa passam a ser salvos no banco e exibidos no painel administrativo. Esta versão não envia automaticamente o pedido para uma impressora física; essa integração pode ser adicionada posteriormente.
+
+4. Os QR Codes estão prontos
+Baixar os QR Codes das mesas 01 a 10
+
+Cada imagem já aponta para o seu site, com o identificador da respectiva mesa. Imprima cada QR com sua etiqueta — “Mesa 01”, “Mesa 02” e assim por diante.
+
+Por exemplo, a Mesa 03 abre:
+
+https://cantinho-mana.vercel.app/?mesa=03
+
+Depois dos deploys, teste primeiro com um pedido pequeno na Mesa 01 e confira se ele aparece no painel administrativo com o número correto da mesa antes de espalhar os QR Codes pela lanchonete.
+
+
+
+
 import { useEffect, useMemo, useState } from "react";
 import "./Telas.css";
 
 const API_URL =
   process.env.REACT_APP_API_URL ||
-  "https://cantinho-do-mana.onrender.com";
+  "http://localhost:3001";
 
 const PRODUTOS_INICIAIS = [
   {
@@ -115,8 +341,22 @@ const produtoVazio = {
   descricao: "",
 };
 
+function obterMesaDaURL() {
+  if (typeof window === "undefined") return "";
+
+  const valor = (
+    new URLSearchParams(window.location.search).get("mesa") || ""
+  ).trim();
+
+  // Aceita identificadores simples como 01, 2, A1 ou TERRACO.
+  return /^[A-Za-z0-9_-]{1,30}$/.test(valor) ? valor : "";
+}
+
 function Tela() {
-  const [secao, setSecao] = useState("inicio");
+  const [secao, setSecao] = useState(() =>
+    obterMesaDaURL() ? "produtos" : "inicio"
+  );
+  const mesaAtual = useMemo(() => obterMesaDaURL(), []);
 
   const [produtos, setProdutos] = useState(
     PRODUTOS_INICIAIS
@@ -128,6 +368,10 @@ function Tela() {
 
   const [avisos, setAvisos] = useState([]);
   const [historico, setHistorico] = useState([]);
+  const [pedidosMesa, setPedidosMesa] = useState([]);
+  const [erroPedidosMesa, setErroPedidosMesa] = useState("");
+  const [enviandoPedidoMesa, setEnviandoPedidoMesa] = useState(false);
+  const [pedidoMesaConfirmado, setPedidoMesaConfirmado] = useState(null);
 
   const [carrinho, setCarrinho] = useState([]);
   const [categoriaAtiva, setCategoriaAtiva] =
@@ -219,7 +463,21 @@ function Tela() {
 
   useEffect(() => {
     carregarPublicos();
+    if (mesaAtual) {
+      setSecao("produtos");
+    }
   }, []);
+
+  useEffect(() => {
+    if (!adminToken || secao !== "admin") return;
+
+    carregarPedidosMesa();
+    const intervalo = window.setInterval(() => {
+      carregarPedidosMesa();
+    }, 15000);
+
+    return () => window.clearInterval(intervalo);
+  }, [adminToken, secao]);
 
   useEffect(() => {
     try {
@@ -576,6 +834,42 @@ function Tela() {
     setSecao("inicio");
   }
 
+  async function carregarPedidosMesa() {
+    if (!adminToken) return;
+
+    setErroPedidosMesa("");
+    try {
+      const resultado = await api(
+        "/admin/pedidos-mesa",
+        {},
+        adminToken
+      );
+      setPedidosMesa(Array.isArray(resultado) ? resultado : []);
+    } catch (error) {
+      setErroPedidosMesa(
+        error.message || "Não foi possível carregar os pedidos das mesas."
+      );
+    }
+  }
+
+  async function atualizarStatusPedidoMesa(id, status) {
+    if (!adminToken) return;
+
+    try {
+      await api(
+        `/admin/pedidos-mesa/${id}/status`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ status }),
+        },
+        adminToken
+      );
+      await carregarPedidosMesa();
+    } catch (error) {
+      alert(error.message || "Não foi possível atualizar o pedido.");
+    }
+  }
+
   function salvarHistoricoLocal(pedidos) {
     setHistorico(pedidos);
 
@@ -585,27 +879,58 @@ function Tela() {
     );
   }
 
-  function finalizarWhatsApp() {
-    if (!carrinho.length) {
+  async function finalizarWhatsApp() {
+    if (!carrinho.length) return;
+
+    // Pedido vindo do QR de uma mesa: grava no banco e aparece no painel admin.
+    if (mesaAtual) {
+      setEnviandoPedidoMesa(true);
+      try {
+        const resposta = await api(
+          "/pedidos/mesa",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              mesa: mesaAtual,
+              itens: carrinho.map((item) => ({
+                produtoId: item.id,
+                quantidade: Number(item.quantidade),
+              })),
+            }),
+          }
+        );
+
+        setPedidoMesaConfirmado({
+          id: resposta.pedidoId,
+          mesa: resposta.mesa || mesaAtual,
+          total: Number(resposta.total ?? totalCarrinho),
+        });
+        setCarrinho([]);
+        setMostrarCarrinho(false);
+      } catch (error) {
+        console.error("Erro ao enviar pedido da mesa:", error);
+        alert(
+          error.message ||
+            "Não foi possível enviar o pedido. Confira a conexão e tente novamente."
+        );
+      } finally {
+        setEnviandoPedidoMesa(false);
+      }
       return;
     }
 
+    // Fora de um QR de mesa, mantém o fluxo atual pelo WhatsApp.
     const mensagem = [
       "Olá! Gostaria de fazer um pedido no Cantinho do Maná:",
       "",
       ...carrinho.map(
         (item) =>
-          `${item.quantidade}x ${item.nome} - R$ ${(
-            item.preco *
-            item.quantidade
-          )
+          `${item.quantidade}x ${item.nome} - R$ ${(item.preco * item.quantidade)
             .toFixed(2)
             .replace(".", ",")}`
       ),
       "",
-      `Total: R$ ${totalCarrinho
-        .toFixed(2)
-        .replace(".", ",")}`,
+      `Total: R$ ${totalCarrinho.toFixed(2).replace(".", ",")}`,
     ].join("\n");
 
     const pedido = {
@@ -623,29 +948,17 @@ function Tela() {
 
     try {
       const pedidosAtuais = JSON.parse(
-        localStorage.getItem(
-          "cantinho_historico_pedidos"
-        ) || "[]"
+        localStorage.getItem("cantinho_historico_pedidos") || "[]"
       );
-
-      salvarHistoricoLocal([
-        pedido,
-        ...pedidosAtuais,
-      ]);
+      salvarHistoricoLocal([pedido, ...pedidosAtuais]);
     } catch (error) {
-      console.error(
-        "Erro ao salvar histórico local:",
-        error
-      );
+      console.error("Erro ao salvar histórico local:", error);
     }
 
     setCarrinho([]);
     setMostrarCarrinho(false);
-
     window.open(
-      `https://wa.me/5581992081650?text=${encodeURIComponent(
-        mensagem
-      )}`,
+      `https://wa.me/5581992081650?text=${encodeURIComponent(mensagem)}`,
       "_blank",
       "noopener,noreferrer"
     );
@@ -1310,6 +1623,15 @@ function Tela() {
         </div>
       )}
 
+      {mesaAtual && (
+        <section className="barra-aviso">
+          <div className="aviso-conteudo">
+            <span>MESA {mesaAtual}</span>
+            <div>Você está fazendo um pedido para a mesa {mesaAtual}. Seu pedido será enviado à equipe.</div>
+          </div>
+        </section>
+      )}
+
       {avisos.length > 0 && (
         <section className="barra-aviso">
 
@@ -1745,6 +2067,75 @@ function Tela() {
               </button>
 
             </div>
+
+            <section className="admin-card">
+              <span>COMANDAS</span>
+              <h2>Pedidos das mesas</h2>
+              <p>Pedidos enviados pelo QR code aparecem aqui sem exigir login do cliente.</p>
+              <button
+                className="botao-ver-cardapio"
+                type="button"
+                onClick={carregarPedidosMesa}
+              >
+                Atualizar pedidos
+              </button>
+
+              {erroPedidosMesa && (
+                <p className="erro-senha">{erroPedidosMesa}</p>
+              )}
+
+              {pedidosMesa.length === 0 && !erroPedidosMesa && (
+                <p style={{ marginTop: 16, color: "var(--cinza)", fontSize: 11 }}>
+                  Nenhum pedido de mesa registrado ainda.
+                </p>
+              )}
+
+              <div className="historico-lista" style={{ marginTop: 16 }}>
+                {pedidosMesa.map((pedido) => (
+                  <article className="historico-card" key={pedido.id}>
+                    <div className="historico-topo">
+                      <strong>Mesa {pedido.mesa} · Pedido #{pedido.id}</strong>
+                      <small>
+                        {pedido.criado_em
+                          ? new Date(pedido.criado_em).toLocaleString("pt-BR")
+                          : "Agora"}
+                      </small>
+                    </div>
+                    {(pedido.itens || []).map((item, index) => (
+                      <div className="historico-linha" key={`${pedido.id}-${index}`}>
+                        <span>{item.quantidade} × {item.nome}</span>
+                        <strong>
+                          R$ {(Number(item.preco) * Number(item.quantidade))
+                            .toFixed(2).replace(".", ",")}
+                        </strong>
+                      </div>
+                    ))}
+                    <div className="historico-total">
+                      <span>
+                        Status: {({ recebido: "Recebido", preparando: "Em preparo", pronto: "Pronto", entregue: "Entregue", cancelado: "Cancelado" })[pedido.status] || pedido.status}
+                      </span>
+                      <strong>
+                        R$ {Number(pedido.total).toFixed(2).replace(".", ",")}
+                      </strong>
+                    </div>
+                    <div className="acoes-produto-admin" style={{ marginTop: 12, display: "flex", flexDirection: "row", flexWrap: "wrap" }}>
+                      {pedido.status === "recebido" && (
+                        <button onClick={() => atualizarStatusPedidoMesa(pedido.id, "preparando")}>Iniciar preparo</button>
+                      )}
+                      {pedido.status === "preparando" && (
+                        <button onClick={() => atualizarStatusPedidoMesa(pedido.id, "pronto")}>Marcar pronto</button>
+                      )}
+                      {pedido.status === "pronto" && (
+                        <button onClick={() => atualizarStatusPedidoMesa(pedido.id, "entregue")}>Marcar entregue</button>
+                      )}
+                      {!["entregue", "cancelado"].includes(pedido.status) && (
+                        <button onClick={() => atualizarStatusPedidoMesa(pedido.id, "cancelado")}>Cancelar pedido</button>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
 
             <section className="admin-grid">
 
@@ -2490,12 +2881,14 @@ function Tela() {
 
                 <button
                   className="finalizar"
-                  onClick={
-                    finalizarWhatsApp
-                  }
+                  disabled={enviandoPedidoMesa}
+                  onClick={finalizarWhatsApp}
                 >
-                  Finalizar pelo
-                  WhatsApp
+                  {enviandoPedidoMesa
+                    ? "Enviando pedido..."
+                    : mesaAtual
+                      ? `Enviar pedido — Mesa ${mesaAtual}`
+                      : "Finalizar pelo WhatsApp"}
                 </button>
 
               </>
@@ -2503,6 +2896,27 @@ function Tela() {
 
           </aside>
 
+        </div>
+      )}
+
+      {pedidoMesaConfirmado && (
+        <div className="overlay popup-overlay" onClick={() => setPedidoMesaConfirmado(null)}>
+          <div className="popup-adicionado" onClick={(event) => event.stopPropagation()}>
+            <div className="check">✓</div>
+            <h2>Pedido enviado à equipe!</h2>
+            <p>
+              Pedido #{pedidoMesaConfirmado.id} registrado para a mesa {pedidoMesaConfirmado.mesa}.
+            </p>
+            <p style={{ marginTop: 12 }}>
+              Total: R$ {Number(pedidoMesaConfirmado.total).toFixed(2).replace(".", ",")}
+            </p>
+            <button
+              className="botao-modal"
+              onClick={() => setPedidoMesaConfirmado(null)}
+            >
+              Continuar
+            </button>
+          </div>
         </div>
       )}
 
